@@ -1,5 +1,5 @@
-const User = require('../models/User');
-const apiResponse = require('../utils/apiResponse');
+const User = require("../models/User");
+const apiResponse = require("../utils/apiResponse");
 
 /**
  * @desc    Get user profile
@@ -10,9 +10,9 @@ const getProfile = async (req, res) => {
   const user = await User.findById(req.params.id);
 
   if (user) {
-    res.json(apiResponse(true, 'User profile retrieved', user));
+    res.json(apiResponse(true, "User profile retrieved", user));
   } else {
-    res.status(404).json(apiResponse(false, 'User not found'));
+    res.status(404).json(apiResponse(false, "User not found"));
   }
 };
 
@@ -25,11 +25,15 @@ const updateProfile = async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    user.name = req.body.name || user.name;
+    user.fullName = req.body.fullName || user.fullName;
     user.email = req.body.email || user.email;
-    user.bloodType = req.body.bloodType || user.bloodType;
-    user.location = req.body.location || user.location;
+    user.bloodGroup = req.body.bloodGroup || user.bloodGroup;
+    user.gender = req.body.gender || user.gender;
     user.phone = req.body.phone || user.phone;
+    user.city = req.body.city || user.city;
+    user.district = req.body.district || user.district;
+    user.country = req.body.country || user.country;
+    user.lastDonation = req.body.lastDonation || user.lastDonation;
 
     if (req.body.password) {
       user.password = req.body.password;
@@ -37,9 +41,9 @@ const updateProfile = async (req, res) => {
 
     const updatedUser = await user.save();
 
-    res.json(apiResponse(true, 'Profile updated successfully', updatedUser));
+    res.json(apiResponse(true, "Profile updated successfully", updatedUser));
   } else {
-    res.status(404).json(apiResponse(false, 'User not found'));
+    res.status(404).json(apiResponse(false, "User not found"));
   }
 };
 
@@ -57,12 +61,12 @@ const toggleAvailability = async (req, res) => {
     res.json(
       apiResponse(
         true,
-        `Availability set to ${user.isAvailable ? 'Available' : 'Unavailable'}`,
-        { isAvailable: user.isAvailable }
-      )
+        `Availability set to ${user.isAvailable ? "Available" : "Unavailable"}`,
+        { isAvailable: user.isAvailable },
+      ),
     );
   } else {
-    res.status(404).json(apiResponse(false, 'User not found'));
+    res.status(404).json(apiResponse(false, "User not found"));
   }
 };
 
@@ -72,25 +76,54 @@ const toggleAvailability = async (req, res) => {
  * @access  Private
  */
 const getNearbyDonors = async (req, res) => {
-  const { bloodType, location } = req.query;
+  const {
+    bloodGroup,
+    city,
+    district,
+    country,
+    page = 1,
+    limit = 10,
+  } = req.query;
 
   const query = {
-    role: 'donor',
+    role: "donor",
     isAvailable: true,
   };
 
-  if (bloodType) {
-    query.bloodType = bloodType;
+  if (bloodGroup) {
+    query.bloodGroup = bloodGroup;
   }
 
-  if (location) {
-    // Basic regex search for location string
-    query.location = { $regex: location, $options: 'i' };
+  if (city) {
+    query.city = { $regex: city, $options: "i" };
   }
 
-  const donors = await User.find(query);
+  if (district) {
+    query.district = { $regex: district, $options: "i" };
+  }
 
-  res.json(apiResponse(true, 'Nearby donors found', donors));
+  if (country) {
+    query.country = { $regex: country, $options: "i" };
+  }
+
+  try {
+    const donors = await User.find(query)
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .exec();
+
+    const count = await User.countDocuments(query);
+
+    res.json(
+      apiResponse(true, "Nearby donors found", {
+        donors,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+      }),
+    );
+  } catch (err) {
+    res.status(500).json(apiResponse(false, "Server Error"));
+  }
 };
 
 module.exports = {

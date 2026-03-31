@@ -1,6 +1,6 @@
-const User = require('../models/User');
-const generateToken = require('../utils/generateToken');
-const apiResponse = require('../utils/apiResponse');
+const User = require("../models/User");
+const generateToken = require("../utils/generateToken");
+const apiResponse = require("../utils/apiResponse");
 
 /**
  * @desc    Register a new user
@@ -8,39 +8,79 @@ const apiResponse = require('../utils/apiResponse');
  * @access  Public
  */
 const register = async (req, res) => {
-  const { name, email, password, role, bloodType, location, phone } = req.body;
+  const {
+    fullName,
+    email,
+    password,
+    gender,
+    bloodGroup,
+    phone,
+    city,
+    district,
+    country,
+    lastDonation,
+    agreedToTerms,
+    role,
+  } = req.body;
 
   const userExists = await User.findOne({ email });
 
   if (userExists) {
     return res
       .status(400)
-      .json(apiResponse(false, 'User already exists with this email'));
+      .json(apiResponse(false, "User already exists with this email"));
   }
 
+  // Calculate totalDonations based on lastDonation
+  const calculatedTotalDonations =
+    typeof lastDonation === "string" && lastDonation.trim() !== "" ? 1 : 0;
+  const lastDonationDate =
+    typeof lastDonation === "string" && lastDonation.trim() !== ""
+      ? lastDonation
+      : null;
+
   const user = await User.create({
-    name,
+    fullName,
     email,
     password,
-    role,
-    bloodType,
-    location,
+    gender,
+    bloodGroup,
     phone,
+    city,
+    district,
+    country,
+    lastDonation: lastDonationDate,
+    totalDonations: calculatedTotalDonations,
+    agreedToTerms,
+    role: role || "donor",
   });
 
   if (user) {
+    const token = generateToken(user._id);
     res.status(201).json(
-      apiResponse(true, 'User registered successfully', {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        bloodType: user.bloodType,
-        token: generateToken(user._id),
-      })
+      apiResponse(true, "User registered successfully", {
+        user: {
+          id: user._id,
+          name: user.fullName,
+          email: user.email,
+          avatar: user.avatar || "",
+          phone: user.phone,
+          bloodGroup: user.bloodGroup,
+          gender: user.gender,
+          role: user.role,
+          verified: true,
+          city: user.city,
+          district: user.district,
+          country: user.country,
+          totalDonations: user.totalDonations,
+          memberSince: user.createdAt,
+        },
+        accessToken: token,
+        refreshToken: token,
+      }),
     );
   } else {
-    res.status(400).json(apiResponse(false, 'Invalid user data'));
+    res.status(400).json(apiResponse(false, "Invalid user data"));
   }
 };
 
@@ -52,21 +92,34 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email }).select("+password");
 
   if (user && (await user.matchPassword(password))) {
+    const token = generateToken(user._id);
     res.json(
-      apiResponse(true, 'Login successful', {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        bloodType: user.bloodType,
-        token: generateToken(user._id),
-      })
+      apiResponse(true, "Login successful", {
+        user: {
+          id: user._id,
+          name: user.fullName,
+          email: user.email,
+          avatar: user.avatar || "",
+          phone: user.phone,
+          bloodGroup: user.bloodGroup,
+          gender: user.gender,
+          role: user.role,
+          verified: true,
+          city: user.city,
+          district: user.district,
+          country: user.country,
+          totalDonations: user.totalDonations,
+          memberSince: user.createdAt,
+        },
+        accessToken: token,
+        refreshToken: token,
+      }),
     );
   } else {
-    res.status(401).json(apiResponse(false, 'Invalid email or password'));
+    res.status(401).json(apiResponse(false, "Invalid email or password"));
   }
 };
 
@@ -79,9 +132,26 @@ const getMe = async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    res.json(apiResponse(true, 'User profile retrieved', user));
+    res.json(
+      apiResponse(true, "User profile retrieved", {
+        id: user._id,
+        name: user.fullName,
+        email: user.email,
+        avatar: user.avatar || "",
+        phone: user.phone,
+        bloodGroup: user.bloodGroup,
+        gender: user.gender,
+        role: user.role,
+        verified: true,
+        city: user.city,
+        district: user.district,
+        country: user.country,
+        totalDonations: user.totalDonations,
+        memberSince: user.createdAt,
+      }),
+    );
   } else {
-    res.status(404).json(apiResponse(false, 'User not found'));
+    res.status(404).json(apiResponse(false, "User not found"));
   }
 };
 
@@ -91,9 +161,73 @@ const getMe = async (req, res) => {
  * @access  Private
  */
 const logout = async (req, res) => {
-  // In JWT, logout is usually handled by client by deleting the token.
-  // We can just return a success response.
-  res.json(apiResponse(true, 'User logged out successfully'));
+  res.json(apiResponse(true, "User logged out successfully"));
+};
+
+/**
+ * @desc    Send password reset token to user email
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    // Do not reveal whether email exists
+    return res.json(
+      apiResponse(true, "If a user exists, an email has been sent."),
+    );
+  }
+
+  const crypto = require("crypto");
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordExpire = resetExpire;
+  await user.save({ validateBeforeSave: false });
+
+  // In a real app, send this token by email. For now return in response for quick dev.
+  return res.json(
+    apiResponse(true, "Password reset token generated", {
+      resetToken,
+      expiresIn: 3600,
+    }),
+  );
+};
+
+/**
+ * @desc    Reset password using token
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+const resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res
+      .status(400)
+      .json(apiResponse(false, "Token and new password are required."));
+  }
+
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpire: { $gt: Date.now() },
+  }).select("+password");
+
+  if (!user) {
+    return res
+      .status(400)
+      .json(apiResponse(false, "Invalid or expired token."));
+  }
+
+  user.password = password;
+  user.resetPasswordToken = null;
+  user.resetPasswordExpire = null;
+  await user.save();
+
+  return res.json(apiResponse(true, "Password successfully reset."));
 };
 
 module.exports = {
@@ -101,4 +235,6 @@ module.exports = {
   login,
   getMe,
   logout,
+  forgotPassword,
+  resetPassword,
 };

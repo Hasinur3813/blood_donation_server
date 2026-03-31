@@ -3,48 +3,88 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
+    fullName: {
       type: String,
-      required: [true, "Please add a name"],
+      required: [true, "Name must be at least 2 characters"],
+      minlength: [2, "Name must be at least 2 characters"],
     },
     email: {
       type: String,
-      required: [true, "Please add an email"],
+      required: [true, "Please provide a valid email"],
       unique: true,
       match: [
         /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        "Please add a valid email",
+        "Please provide a valid email",
       ],
     },
     password: {
       type: String,
-      required: [true, "Please add a password"],
-      minlength: 6,
+      required: [true, "Password must be at least 6 characters"],
+      minlength: [6, "Password must be at least 6 characters"],
       select: false,
     },
-    role: {
+    gender: {
       type: String,
-      enum: ["donor", "recipient", "admin"],
-      default: "donor",
+      required: [true, "Please select your gender"],
     },
-    bloodType: {
+    bloodGroup: {
       type: String,
+      required: [true, "Please select a blood group"],
       enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-      required: [true, "Please specify your blood type"],
-    },
-    location: {
-      type: String,
-      required: [true, "Please add your location"],
     },
     phone: {
       type: String,
-      required: [true, "Please add your phone number"],
+      required: [true, "Valid phone number is required"],
+      minlength: [10, "Valid phone number is required"],
+    },
+    city: {
+      type: String,
+      required: [true, "City is required"],
+      minlength: [2, "City is required"],
+    },
+    district: {
+      type: String,
+      required: [true, "District is required"],
+      minlength: [2, "District is required"],
+    },
+    country: {
+      type: String,
+      required: [true, "Country is required"],
+      minlength: [2, "Country is required"],
+    },
+    lastDonation: {
+      type: String, // Matching the frontend z.string().optional()
+      default: null,
+    },
+    totalDonations: {
+      type: Number,
+      default: 0,
+    },
+    agreedToTerms: {
+      type: Boolean,
+      required: [true, "You must agree to the terms"],
+      validate: {
+        validator: function (v) {
+          return v === true;
+        },
+        message: "You must agree to the terms",
+      },
+    },
+    // Keep internal backend fields
+    role: {
+      type: String,
+      enum: ["donor", "moderator", "admin"],
+      default: "donor",
     },
     isAvailable: {
       type: Boolean,
       default: true,
     },
-    lastDonationDate: {
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpire: {
       type: Date,
       default: null,
     },

@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const {
   createRequest,
@@ -6,20 +6,18 @@ const {
   getRequestById,
   updateStatus,
   deleteRequest,
-} = require('../controllers/requestController');
-const { protect } = require('../middleware/authMiddleware');
-const { donationRequestValidator } = require('../utils/validators');
+  getMyRequests,
+} = require("../controllers/requestController");
+const { protect } = require("../middleware/authMiddleware");
+
+router.route("/").post(protect, createRequest).get(protect, getRequests);
 
 router
-  .route('/')
-  .post(protect, donationRequestValidator, createRequest)
-  .get(protect, getRequests);
-
-router
-  .route('/:id')
+  .route("/:id")
   .get(protect, getRequestById)
+  .put(protect, updateStatus)
   .delete(protect, deleteRequest);
 
-router.patch('/:id/status', protect, updateStatus);
+router.get("/my-requests", protect, getMyRequests);
 
 module.exports = router;

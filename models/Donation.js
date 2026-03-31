@@ -1,15 +1,15 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const donationSchema = new mongoose.Schema(
   {
     donorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     requestId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'DonationRequest',
+      ref: "DonationRequest",
       default: null,
     },
     donationDate: {
@@ -22,18 +22,18 @@ const donationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['scheduled', 'completed', 'cancelled'],
-      default: 'completed',
+      enum: ["scheduled", "completed", "cancelled"],
+      default: "completed",
     },
-    bloodType: {
+    bloodGroup: {
       type: String,
-      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+      enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
       required: true,
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-module.exports = mongoose.model('Donation', donationSchema);
+module.exports = mongoose.model("Donation", donationSchema);

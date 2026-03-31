@@ -53,6 +53,19 @@ const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
 
+// Handle server errors
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `Port ${PORT} is already in use. Please kill the process using this port or use a different port.`,
+    );
+    process.exit(1);
+  } else {
+    console.error(`Server error: ${err.message}`);
+    process.exit(1);
+  }
+});
+
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (err, promise) => {
   console.log(`Error: ${err.message}`);
