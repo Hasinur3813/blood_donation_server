@@ -57,28 +57,9 @@ const register = async (req, res) => {
 
   if (user) {
     const token = generateToken(user._id);
-    res.status(201).json(
-      apiResponse(true, "User registered successfully", {
-        user: {
-          id: user._id,
-          name: user.fullName,
-          email: user.email,
-          avatar: user.avatar || "",
-          phone: user.phone,
-          bloodGroup: user.bloodGroup,
-          gender: user.gender,
-          role: user.role,
-          verified: true,
-          city: user.city,
-          district: user.district,
-          country: user.country,
-          totalDonations: user.totalDonations,
-          memberSince: user.createdAt,
-        },
-        accessToken: token,
-        refreshToken: token,
-      }),
-    );
+    res
+      .status(201)
+      .json(apiResponse(true, "User registered successfully", user));
   } else {
     res.status(400).json(apiResponse(false, "Invalid user data"));
   }
@@ -96,28 +77,7 @@ const login = async (req, res) => {
 
   if (user && (await user.matchPassword(password))) {
     const token = generateToken(user._id);
-    res.json(
-      apiResponse(true, "Login successful", {
-        user: {
-          id: user._id,
-          name: user.fullName,
-          email: user.email,
-          avatar: user.avatar || "",
-          phone: user.phone,
-          bloodGroup: user.bloodGroup,
-          gender: user.gender,
-          role: user.role,
-          verified: true,
-          city: user.city,
-          district: user.district,
-          country: user.country,
-          totalDonations: user.totalDonations,
-          memberSince: user.createdAt,
-        },
-        accessToken: token,
-        refreshToken: token,
-      }),
-    );
+    res.json(apiResponse(true, "Login successful", user));
   } else {
     res.status(401).json(apiResponse(false, "Invalid email or password"));
   }
@@ -132,24 +92,7 @@ const getMe = async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    res.json(
-      apiResponse(true, "User profile retrieved", {
-        id: user._id,
-        name: user.fullName,
-        email: user.email,
-        avatar: user.avatar || "",
-        phone: user.phone,
-        bloodGroup: user.bloodGroup,
-        gender: user.gender,
-        role: user.role,
-        verified: true,
-        city: user.city,
-        district: user.district,
-        country: user.country,
-        totalDonations: user.totalDonations,
-        memberSince: user.createdAt,
-      }),
-    );
+    res.json(apiResponse(true, "User profile retrieved", user));
   } else {
     res.status(404).json(apiResponse(false, "User not found"));
   }

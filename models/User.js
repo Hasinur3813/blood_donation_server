@@ -88,11 +88,108 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // ── Mixed-in profile fields (safe defaults) ───────────────────────────────
+    avatar: {
+      type: String,
+      default: "",
+    },
+    verified: {
+      type: Boolean,
+      default: false,
+    },
+    bio: {
+      type: String,
+      default: undefined,
+      trim: true,
+    },
+    age: {
+      type: Number,
+      default: undefined,
+      min: 0,
+    },
+    weight: {
+      type: Number,
+      default: undefined,
+      min: 0,
+    },
+
+    // Keep `gender` as-is (required above); this is only for the frontend shape.
+    // status: {
+    //   type: String,
+    //   enum: ["never_donated", "cooling", "eligible", "cooldown"],
+    //   default: "never_donated",
+    // },
+    nextEligibleAt: {
+      type: Date,
+      default: null,
+    },
+
+    donationHistory: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+    requestsMade: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+
+    settings: {
+      notifications: {
+        emergencyAlerts: { type: Boolean, default: true },
+        urgentRequests: { type: Boolean, default: true },
+        nearbyRequests: { type: Boolean, default: true },
+        donationReminders: { type: Boolean, default: true },
+        requestUpdates: { type: Boolean, default: true },
+        newMessages: { type: Boolean, default: true },
+        emailDigest: { type: Boolean, default: true },
+        smsAlerts: { type: Boolean, default: true },
+      },
+      privacy: {
+        showInSearch: { type: Boolean, default: true },
+        showPhone: { type: Boolean, default: true },
+        showEmail: { type: Boolean, default: true },
+        showDonationHistory: { type: Boolean, default: true },
+        allowDirectContact: { type: Boolean, default: true },
+      },
+    },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
 );
+
+// ── Virtual fields (computed from existing schema) ─────────────────────────────
+userSchema.virtual("name").get(function () {
+  return this.fullName;
+});
+
+userSchema.virtual("status").get(function () {
+  const total =
+    typeof this.totalDonations === "number" ? this.totalDonations : 0;
+  if (total > 10) return "Champion";
+  if (total > 5) return "Starter";
+  return "Super Hero";
+});
+
+userSchema.virtual("livesImpacted").get(function () {
+  const total =
+    typeof this.totalDonations === "number" ? this.totalDonations : 0;
+  return total * 3;
+});
+
+// NOTE: kept misspelling `totalLitersDoanted` to match requested frontend shape.
+userSchema.virtual("totalLitersDoanted").get(function () {
+  const total =
+    typeof this.totalDonations === "number" ? this.totalDonations : 0;
+  return total * 0.45;
+});
+
+userSchema.virtual("memberSince").get(function () {
+  return this.createdAt;
+});
 
 // Encrypt password before saving
 userSchema.pre("save", async function (next) {
