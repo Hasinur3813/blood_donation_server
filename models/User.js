@@ -92,7 +92,8 @@ const userSchema = new mongoose.Schema(
     // ── Mixed-in profile fields (safe defaults) ───────────────────────────────
     avatar: {
       type: String,
-      default: "",
+      default:
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuBszC17M5Jb9qLVy1P9uX3a-wYsI5QltiNrE4jYs3m6y4Ce8mFO6yLTAtKI7qL61J0G2HmYMlVl_fsCcHrxbPst65aicIX9UAwAzhAr4rR00BjHdJZLyjEgCqUQbB1ufoPg7_ZCHOZHvWbMMAe3gFoik_YjFsOe2IxVKXV86vbL7O4m8WMMi6mG46W7U98o8IbmxA3VbARlySf9ynzVV-NYy9OMNveDGdFucVFAyr-9BwD697skNlxPVLsSTN6_B2ss2els9Snemy4",
     },
     verified: {
       type: Boolean,
@@ -170,8 +171,8 @@ userSchema.virtual("status").get(function () {
   const total =
     typeof this.totalDonations === "number" ? this.totalDonations : 0;
   if (total > 10) return "Champion";
-  if (total > 5) return "Starter";
-  return "Super Hero";
+  if (total > 5) return "Super Hero";
+  return "Starter";
 });
 
 userSchema.virtual("livesImpacted").get(function () {
